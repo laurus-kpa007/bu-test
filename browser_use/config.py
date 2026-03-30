@@ -227,11 +227,19 @@ class FlatEnvConfig(BaseSettings):
 	WIN_FONT_DIR: str = Field(default='C:\\Windows\\Fonts')
 	BROWSER_USE_VERSION_CHECK: bool = Field(default=True)
 
+	# LLM configuration from env
+	BROWSER_USE_LLM_PROVIDER: str | None = Field(default=None)
+	BROWSER_USE_LLM_MODEL: str | None = Field(default=None)
+	BROWSER_USE_LLM_BASE_URL: str | None = Field(default=None)
+	BROWSER_USE_LLM_API_KEY: str | None = Field(default=None)
+	BROWSER_USE_LLM_TEMPERATURE: float | None = Field(default=None)
+	BROWSER_USE_LLM_DONT_FORCE_STRUCTURED_OUTPUT: bool = Field(default=False)
+	BROWSER_USE_LLM_ADD_SCHEMA_TO_SYSTEM_PROMPT: bool = Field(default=False)
+
 	# MCP-specific env vars
 	BROWSER_USE_CONFIG_PATH: str | None = Field(default=None)
 	BROWSER_USE_HEADLESS: bool | None = Field(default=None)
 	BROWSER_USE_ALLOWED_DOMAINS: str | None = Field(default=None)
-	BROWSER_USE_LLM_MODEL: str | None = Field(default=None)
 
 	# Proxy env vars
 	BROWSER_USE_PROXY_URL: str | None = Field(default=None)

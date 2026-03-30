@@ -220,16 +220,23 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 				raise ValueError('llm_screenshot_size dimensions must be at least 100 pixels')
 			self.logger.info(f'🖼️  LLM screenshot resizing enabled: {width}x{height}')
 		if llm is None:
-			default_llm_name = CONFIG.DEFAULT_LLM
-			if default_llm_name:
-				from browser_use.llm.models import get_llm_by_name
+			# Try env-based LLM config first (BROWSER_USE_LLM_PROVIDER etc.)
+			from browser_use.llm.models import create_llm_from_env
 
-				llm = get_llm_by_name(default_llm_name)
-			else:
-				# No default LLM specified, use the original default
-				from browser_use import ChatBrowserUse
+			llm = create_llm_from_env()
 
-				llm = ChatBrowserUse()
+			if llm is None:
+				# Fall back to DEFAULT_LLM name-based lookup
+				default_llm_name = CONFIG.DEFAULT_LLM
+				if default_llm_name:
+					from browser_use.llm.models import get_llm_by_name
+
+					llm = get_llm_by_name(default_llm_name)
+				else:
+					# No default LLM specified, use the original default
+					from browser_use import ChatBrowserUse
+
+					llm = ChatBrowserUse()
 
 		# set flashmode = True if llm is ChatBrowserUse
 		if llm.provider == 'browser-use':

@@ -12,7 +12,7 @@ Usage:
 """
 
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from browser_use.llm.azure.chat import ChatAzureOpenAI
 from browser_use.llm.browser_use.chat import ChatBrowserUse
@@ -84,6 +84,158 @@ cerebras_qwen_3_coder_480b: 'BaseChatModel'
 bu_latest: 'BaseChatModel'
 bu_1_0: 'BaseChatModel'
 bu_2_0: 'BaseChatModel'
+
+
+def create_llm_from_env() -> 'BaseChatModel | None':
+	"""
+	Create an LLM instance from BROWSER_USE_LLM_* environment variables.
+
+	Supported env vars:
+		BROWSER_USE_LLM_PROVIDER: openai, anthropic, google, ollama, litellm, deepseek, groq, mistral, azure, cerebras, openrouter
+		BROWSER_USE_LLM_MODEL: model name (e.g. gpt-4o, claude-sonnet-4-20250514, llama3.1)
+		BROWSER_USE_LLM_BASE_URL: custom API base URL (for LM Studio, vLLM, etc.)
+		BROWSER_USE_LLM_API_KEY: API key
+		BROWSER_USE_LLM_TEMPERATURE: temperature (float)
+		BROWSER_USE_LLM_DONT_FORCE_STRUCTURED_OUTPUT: true/false - skip response_format json_schema
+		BROWSER_USE_LLM_ADD_SCHEMA_TO_SYSTEM_PROMPT: true/false - inject schema into system prompt instead
+
+	Returns:
+		BaseChatModel instance or None if no provider is configured
+	"""
+	from browser_use.config import FlatEnvConfig
+
+	env = FlatEnvConfig()
+
+	provider = env.BROWSER_USE_LLM_PROVIDER
+	if not provider:
+		return None
+
+	provider = provider.lower().strip()
+	model = env.BROWSER_USE_LLM_MODEL or ''
+	base_url = env.BROWSER_USE_LLM_BASE_URL
+	api_key = env.BROWSER_USE_LLM_API_KEY
+	temperature = env.BROWSER_USE_LLM_TEMPERATURE
+	dont_force = env.BROWSER_USE_LLM_DONT_FORCE_STRUCTURED_OUTPUT
+	add_schema = env.BROWSER_USE_LLM_ADD_SCHEMA_TO_SYSTEM_PROMPT
+
+	if provider == 'openai':
+		kwargs: dict[str, Any] = {'model': model or 'gpt-4o'}
+		if api_key:
+			kwargs['api_key'] = api_key
+		if base_url:
+			kwargs['base_url'] = base_url
+		if temperature is not None:
+			kwargs['temperature'] = temperature
+		if dont_force:
+			kwargs['dont_force_structured_output'] = True
+		if add_schema:
+			kwargs['add_schema_to_system_prompt'] = True
+		return ChatOpenAI(**kwargs)
+
+	elif provider == 'anthropic':
+		from browser_use.llm.anthropic.chat import ChatAnthropic
+
+		kwargs = {'model': model or 'claude-sonnet-4-20250514'}
+		if api_key:
+			kwargs['api_key'] = api_key
+		if base_url:
+			kwargs['base_url'] = base_url
+		if temperature is not None:
+			kwargs['temperature'] = temperature
+		return ChatAnthropic(**kwargs)
+
+	elif provider == 'google':
+		kwargs = {'model': model or 'gemini-2.5-flash'}
+		if api_key:
+			kwargs['api_key'] = api_key
+		if temperature is not None:
+			kwargs['temperature'] = temperature
+		return ChatGoogle(**kwargs)
+
+	elif provider == 'ollama':
+		from browser_use.llm.ollama.chat import ChatOllama
+
+		kwargs = {'model': model or 'llama3.1'}
+		if base_url:
+			kwargs['host'] = base_url
+		return ChatOllama(**kwargs)
+
+	elif provider == 'litellm':
+		from browser_use.llm.litellm.chat import ChatLiteLLM
+
+		kwargs = {'model': model}
+		if api_key:
+			kwargs['api_key'] = api_key
+		if base_url:
+			kwargs['api_base'] = base_url
+		if temperature is not None:
+			kwargs['temperature'] = temperature
+		return ChatLiteLLM(**kwargs)
+
+	elif provider == 'deepseek':
+		from browser_use.llm.deepseek.chat import ChatDeepSeek
+
+		kwargs = {'model': model or 'deepseek-chat'}
+		if api_key:
+			kwargs['api_key'] = api_key
+		if base_url:
+			kwargs['base_url'] = base_url
+		if temperature is not None:
+			kwargs['temperature'] = temperature
+		return ChatDeepSeek(**kwargs)
+
+	elif provider == 'groq':
+		from browser_use.llm.groq.chat import ChatGroq
+
+		kwargs = {'model': model}
+		if api_key:
+			kwargs['api_key'] = api_key
+		if base_url:
+			kwargs['base_url'] = base_url
+		return ChatGroq(**kwargs)
+
+	elif provider == 'mistral':
+		kwargs = {'model': model or 'mistral-large-latest'}
+		if api_key:
+			kwargs['api_key'] = api_key
+		if base_url:
+			kwargs['base_url'] = base_url
+		return ChatMistral(**kwargs)
+
+	elif provider == 'azure':
+		kwargs = {'model': model or 'gpt-4o'}
+		if api_key:
+			kwargs['api_key'] = api_key
+		azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
+		if azure_endpoint:
+			kwargs['azure_endpoint'] = azure_endpoint
+		if temperature is not None:
+			kwargs['temperature'] = temperature
+		return ChatAzureOpenAI(**kwargs)
+
+	elif provider == 'cerebras':
+		kwargs = {'model': model}
+		if api_key:
+			kwargs['api_key'] = api_key
+		return ChatCerebras(**kwargs)
+
+	elif provider == 'openrouter':
+		from browser_use.llm.openrouter.chat import ChatOpenRouter
+
+		kwargs = {'model': model}
+		if api_key:
+			kwargs['api_key'] = api_key
+		if base_url:
+			kwargs['base_url'] = base_url
+		if temperature is not None:
+			kwargs['temperature'] = temperature
+		return ChatOpenRouter(**kwargs)
+
+	else:
+		raise ValueError(
+			f"Unknown BROWSER_USE_LLM_PROVIDER: '{provider}'. "
+			f"Supported: openai, anthropic, google, ollama, litellm, deepseek, groq, mistral, azure, cerebras, openrouter"
+		)
 
 
 def get_llm_by_name(model_name: str):
